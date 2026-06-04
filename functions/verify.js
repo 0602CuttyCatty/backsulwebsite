@@ -1,65 +1,78 @@
-// functions/verify.js
-// Cloudflare Pages Functions 형식
-// Netlify Functions의 netlify/functions/verify.js 대체
+/* ═══════════════════════════════════════════
+   functions/verify.js
+   Cloudflare Pages Function
+   - POST /verify  { password }        → { ok: true/false }
+   - POST /verify  { action: 'sign' }  → Cloudinary 서명 (Signed 방식 쓸 때)
+═══════════════════════════════════════════ */
 
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
+  // CORS 헤더
+  const corsHeaders = {
+    'Access-Control-Allow-Origin':  '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',
   };
 
+  let body;
   try {
-    const body = await request.json();
-
-    /* ── 비밀번호 검증 ── */
-    if (body.password !== undefined) {
-      const correct = env.GALLERY_PASSWORD;
-      if (!correct) return new Response(JSON.stringify({ ok: false, error: '환경변수 미설정' }), { status: 500, headers });
-      return new Response(JSON.stringify({ ok: body.password === correct }), { status: 200, headers });
-    }
-
-    /* ── Cloudinary 서명 생성 ── */
-    if (body.action === 'sign') {
-      const apiSecret = env.CLOUDINARY_API_SECRET;
-      const apiKey    = env.CLOUDINARY_API_KEY;
-      const cloudName = env.CLOUDINARY_CLOUD_NAME;
-
-      if (!apiSecret || !apiKey || !cloudName)
-        return new Response(JSON.stringify({ error: 'Cloudinary 환경변수 미설정' }), { status: 500, headers });
-
-      const timestamp = Math.floor(Date.now() / 1000);
-      const folder    = body.folder || 'gallery';
-      const toSign    = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
-
-      // Cloudflare Workers에서 SHA-256 서명
-      const msgBuffer  = new TextEncoder().encode(toSign);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-      const hashArray  = Array.from(new Uint8Array(hashBuffer));
-      const signature  = hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
-
-      return new Response(
-        JSON.stringify({ signature, timestamp, apiKey, cloudName, folder }),
-        { status: 200, headers }
-      );
-    }
-
-    return new Response(JSON.stringify({ error: '알 수 없는 요청' }), { status: 400, headers });
-
-  } catch(e) {
-    return new Response(JSON.stringify({ error: '잘못된 요청' }), { status: 400, headers });
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+      status: 400, headers: corsHeaders,
+    });
   }
+
+  /* ── 비밀번호 검증 ── */
+  if (body.password !== undefined) {
+    const ok = body.password === env.GALLERY_PASSWORD;
+    return new Response(JSON.stringify({ ok }), {
+      status: 200, headers: corsHeaders,
+    });
+  }
+
+  /* ── Cloudinary 서명 (Signed 업로드 쓸 경우 대비) ── */
+  if (body.action === 'sign') {
+    const timestamp  = Math.floor(Date.now() / 1000);
+    const folder     = body.folder || 'summer-gallery';
+    const apiSecret  = env.CLOUDINARY_API_SECRET;
+    const apiKey     = env.CLOUDINARY_API_KEY;
+    const cloudName  = env.CLOUDINARY_CLOUD_NAME;
+
+    // SHA-1 서명: "folder=...&timestamp=...{secret}"
+    const strToSign  = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+    const signature  = await sha1(strToSign);
+
+    return new Response(JSON.stringify({
+      signature, timestamp, apiKey, cloudName, folder,
+    }), { status: 200, headers: corsHeaders });
+  }
+
+  return new Response(JSON.stringify({ error: 'Unknown action' }), {
+    status: 400, headers: corsHeaders,
+  });
 }
 
-// OPTIONS preflight
+// OPTIONS preflight 대응
 export async function onRequestOptions() {
   return new Response(null, {
-    status: 200,
+    status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin':  '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
+}
+
+/* ── SHA-1 헬퍼 (Web Crypto API) ── */
+async function sha1(message) {
+  const encoder = new TextEncoder();
+  const data     = encoder.encode(message);
+  const hashBuf  = await crypto.subtle.digest('SHA-1', data);
+  return Array.from(new Uint8Array(hashBuf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }

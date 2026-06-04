@@ -188,26 +188,21 @@ function fbDeleteWriting(charId, writingId) {
    CLOUDINARY 업로드
 ══════════════════════════════ */
 
+const CLOUDINARY_CLOUD_NAME  = 'dnxq5m6cu';
+const CLOUDINARY_UPLOAD_PRESET = 'summer-gallery-preset'; // 대시보드에서 만든 preset 이름
+
 async function uploadToCloudinary(file) {
-  const sigRes = await fetch('/verify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'sign', folder: 'gallery' }),
-  });
-  const { signature, timestamp, apiKey, cloudName, folder } = await sigRes.json();
-
   const formData = new FormData();
-  formData.append('file',      file);
-  formData.append('folder',    folder);
-  formData.append('timestamp', timestamp);
-  formData.append('api_key',   apiKey);
-  formData.append('signature', signature);
+  formData.append('file',           file);
+  formData.append('upload_preset',  CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder',         'summer-gallery');
 
-  const upRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-    method: 'POST', body: formData,
-  });
-  if (!upRes.ok) throw new Error('Cloudinary 업로드 실패');
-  const data = await upRes.json();
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+    { method: 'POST', body: formData }
+  );
+  if (!res.ok) throw new Error('Cloudinary 업로드 실패');
+  const data = await res.json();
   return { url: data.secure_url, publicId: data.public_id };
 }
 
