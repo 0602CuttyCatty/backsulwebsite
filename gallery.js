@@ -189,7 +189,7 @@ function fbDeleteWriting(charId, writingId) {
 ══════════════════════════════ */
 
 const CLOUDINARY_CLOUD_NAME  = 'dnxq5m6cu';
-const CLOUDINARY_UPLOAD_PRESET = 'summer-gallery-preset'; // 대시보드에서 만든 preset 이름
+const CLOUDINARY_UPLOAD_PRESET = 'summer-gallery-preset';
 
 async function uploadToCloudinary(file) {
   const formData = new FormData();
@@ -220,7 +220,7 @@ function initStarfield() {
     x: Math.random()*innerWidth, y: Math.random()*innerHeight,
     r: Math.random()*1.7+0.2,   a: Math.random(),
     da: (Math.random()*0.013+0.003)*(Math.random()<0.5?1:-1),
-    color: ['#ffffff','#c8d8f0','#f5d67a','#d0b8ff','#a8d8ff'][Math.floor(Math.random()*5)],
+    color: ['#ffffff','#ffd93d','#ff9a2e','#2ec4b6','#ffb997'][Math.floor(Math.random()*5)],
   }));
 
   (function draw() {
@@ -246,7 +246,7 @@ setInterval(launchShootingStar,4800);
 
 document.addEventListener('click', e => {
   if (e.target.closest('button,input,textarea,label,.tab-btn,.tab-add-btn,.subtab-btn,.sort-btn,.view-btn,.icon-btn,.card-action-btn,.add-post-btn,.writing-item-actions')) return;
-  const syms=['✦','✧','⋆','★','✺','⊹','✵','·'];
+  const syms=['🌟','✨','⭐','🌸','💫','·','⋆','✦'];
   for(let i=0;i<6;i++){
     const el=document.createElement('div'); el.className='sparkle';
     const dx=(Math.random()-0.5)*65, dy=(Math.random()-0.5)*65;
@@ -294,7 +294,7 @@ function renderLoading(){
   document.getElementById('tabsRow').innerHTML='';
   document.getElementById('subtabsRow').style.display='none';
   document.getElementById('galleryPanels').innerHTML=
-    `<div class="empty-state"><div class="empty-icon" style="animation:star-pulse 1.5s ease-in-out infinite">✦</div><p class="empty-text">데이터를 불러오는 중...</p></div>`;
+    `<div class="empty-state"><div class="empty-icon" style="animation:sun-pulse 1.5s ease-in-out infinite">☀️</div><p class="empty-text">데이터를 불러오는 중...</p></div>`;
 }
 
 function renderTabs(){
@@ -366,7 +366,6 @@ function renderPhotosPanel(c, container){
   const posts = sorted(c.posts||[]);
   const wrap  = document.createElement('div');
 
-  // 정렬 컨트롤
   wrap.innerHTML = `
     <div class="controls-bar">
       <div class="sort-group">
@@ -382,7 +381,7 @@ function renderPhotosPanel(c, container){
 
   const grid = wrap.querySelector('#postGrid');
   if (posts.length===0){
-    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🌌</div><p class="empty-text">아직 게시물이 없어요</p></div>`;
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🌊</div><p class="empty-text">아직 게시물이 없어요</p></div>`;
   } else {
     posts.forEach((p,i)=>{
       const card=document.createElement('div');
@@ -392,7 +391,7 @@ function renderPhotosPanel(c, container){
       card.innerHTML=`
         ${thumb
           ?`<img class="post-thumb" src="${thumb}" alt="${p.title}" loading="lazy" />`
-          :`<div class="post-thumb-placeholder">🌌</div>`}
+          :`<div class="post-thumb-placeholder">🌊</div>`}
         <div class="post-card-body">
           <div class="post-card-title">${p.title||'(제목 없음)'}</div>
           <div class="post-card-meta">${p.date||''}${p.images&&p.images.length>1?` · 📷 ${p.images.length}장`:''}</div>
@@ -676,7 +675,6 @@ function openPostModal(charId, postId){
   document.getElementById('postDate').value   = post?.date||todayStr();
   document.getElementById('postDesc').value   = post?.desc||'';
 
-  // 기존 이미지 미리보기
   state.editingPostImages = post ? [...(post.images||[])] : [];
   renderPostImgPreview();
 
@@ -691,7 +689,6 @@ function closePostModal(){
   state.editingPostImages=[];
 }
 
-// 파일 선택 시 미리보기 추가
 document.getElementById('postImages').addEventListener('change', function(){
   Array.from(this.files).forEach(file=>{
     if(!file.type.startsWith('image/')) return;
@@ -705,13 +702,11 @@ document.getElementById('postImages').addEventListener('change', function(){
 function renderPostImgPreview(){
   const wrap=document.getElementById('postImgPreview');
   wrap.innerHTML='';
-  // 기존 이미지
   state.editingPostImages.forEach((img,i)=>{
     const item=document.createElement('div'); item.className='post-img-preview-item';
     item.innerHTML=`<img src="${img.url}" /><button class="post-img-preview-del" onclick="removeExistingImg(${i})">✕</button>`;
     wrap.appendChild(item);
   });
-  // 새 이미지
   state.pendingImages.forEach((p,i)=>{
     const item=document.createElement('div'); item.className='post-img-preview-item';
     item.innerHTML=`<img src="${p.dataUrl}" /><button class="post-img-preview-del" onclick="removeNewImg(${i})">✕</button>`;
@@ -811,22 +806,20 @@ function buildEmojiPicker(containerId, onChange, initial){
   container.innerHTML = '';
   const selected = initial || state.selectedEmoji;
 
-  // 직접 입력 칸
   const inputWrap = document.createElement('div');
   inputWrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;width:100%';
   inputWrap.innerHTML = `
     <input id="${containerId}_custom" type="text" placeholder="이모지 직접 입력 (예: 🐱)"
-      style="flex:1;padding:8px 12px;background:rgba(8,4,24,0.75);border:1px solid rgba(180,150,255,0.28);
-             border-radius:10px;color:#e8eeff;font-size:1.1rem;outline:none;font-family:inherit"
+      style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.85);border:1.5px solid rgba(255,154,46,0.35);
+             border-radius:10px;color:#2d3a2e;font-size:1.1rem;outline:none;font-family:inherit"
       maxlength="4" />
     <button onclick="applyCustomEmoji('${containerId}')"
-      style="padding:8px 14px;border-radius:10px;background:linear-gradient(135deg,#7030d8,#2e5ec8);
+      style="padding:8px 14px;border-radius:10px;background:linear-gradient(135deg,#ff6b4a,#ff9a2e);
              border:none;color:white;cursor:pointer;font-size:0.82rem;font-family:inherit;flex-shrink:0">
       적용
     </button>`;
   container.appendChild(inputWrap);
 
-  // 기본 이모지 목록
   const grid = document.createElement('div');
   grid.className = 'emoji-picker';
   EMOJIS.forEach(em => {
@@ -850,11 +843,9 @@ function applyCustomEmoji(containerId) {
   const input = document.getElementById(containerId + '_custom');
   const val   = input.value.trim();
   if (!val) return;
-  // 이모지만 허용 (문자가 있으면 첫 글자만)
   const em = [...val][0];
   if (!em) return;
   state.selectedEmoji = em;
-  // 기존 선택 해제
   document.querySelectorAll(`#${containerId} .emoji-opt`).forEach(o => o.classList.remove('selected'));
   showToast(`${em} 선택됨`, 'success');
 }
